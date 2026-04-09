@@ -100,4 +100,26 @@ class AuthRemoteDataSource {
             }
         )
     }
+
+    fun lookupParticipant(value: String): Result<User> {
+        val result = AuthApiService.lookupParticipant(
+            ParticipantLookupRequestDto(value = value)
+        )
+
+        return result.fold(
+            onSuccess = { response ->
+                Result.success(
+                    User(
+                        id = response.id,
+                        fullName = response.fullName,
+                        email = response.email,
+                        phoneNumber = response.phoneNumber
+                    )
+                )
+            },
+            onFailure = { error ->
+                Result.failure(Exception(error.message ?: "Unable to lookup participant"))
+            }
+        )
+    }
 }

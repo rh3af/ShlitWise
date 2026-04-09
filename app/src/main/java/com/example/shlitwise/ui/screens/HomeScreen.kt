@@ -2,6 +2,7 @@ package com.example.shlitwise.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -25,8 +26,23 @@ fun HomeScreen(
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.FRIENDS) }
     var showEditAccount by rememberSaveable { mutableStateOf(false) }
+    var showAddExpense by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
+        floatingActionButton = {
+            val shouldShowFab =
+                !showEditAccount &&
+                        !showAddExpense &&
+                        (selectedTab == HomeTab.FRIENDS || selectedTab == HomeTab.ACTIVITY)
+
+            if (shouldShowFab) {
+                FloatingActionButton(
+                    onClick = { showAddExpense = true }
+                ) {
+                    Text("Add Expense")
+                }
+            }
+        },
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
@@ -34,6 +50,7 @@ fun HomeScreen(
                     onClick = {
                         selectedTab = HomeTab.FRIENDS
                         showEditAccount = false
+                        showAddExpense = false
                     },
                     icon = { Text("👥") },
                     label = { Text("Friends") }
@@ -44,6 +61,7 @@ fun HomeScreen(
                     onClick = {
                         selectedTab = HomeTab.ACTIVITY
                         showEditAccount = false
+                        showAddExpense = false
                     },
                     icon = { Text("📋") },
                     label = { Text("Activity") }
@@ -54,6 +72,7 @@ fun HomeScreen(
                     onClick = {
                         selectedTab = HomeTab.ACCOUNT
                         showEditAccount = false
+                        showAddExpense = false
                     },
                     icon = { Text("👤") },
                     label = { Text("Account") }
@@ -66,6 +85,15 @@ fun HomeScreen(
             .padding(innerPadding)
 
         when {
+            showAddExpense -> {
+                AddExpenseScreen(
+                    modifier = contentModifier,
+                    repository = repository,
+                    onBackClick = { showAddExpense = false },
+                    onSaveClick = { showAddExpense = false }
+                )
+            }
+
             selectedTab == HomeTab.FRIENDS -> {
                 FriendsScreen(modifier = contentModifier)
             }

@@ -29,7 +29,7 @@ fun FriendsScreen(modifier: Modifier = Modifier) {
         )
 
         Text(
-            text = "Friends and Create Group will be built next.",
+            text = "Add friends and expenses",
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

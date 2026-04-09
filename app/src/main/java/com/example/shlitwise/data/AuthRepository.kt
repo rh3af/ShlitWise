@@ -124,6 +124,16 @@ class AuthRepository(
         )
     }
 
+    fun lookupParticipant(value: String): Result<User> {
+        val normalizedValue = value.trim()
+
+        if (normalizedValue.isBlank()) {
+            return Result.failure(Exception("Enter an email address or phone number"))
+        }
+
+        return remoteDataSource.lookupParticipant(normalizedValue)
+    }
+
     fun getCurrentUser(): User? = sessionManager.getCurrentUser()
 
     fun signOut() {

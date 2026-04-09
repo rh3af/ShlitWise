@@ -29,7 +29,7 @@ fun ActivityScreen(modifier: Modifier = Modifier) {
         )
 
         Text(
-            text = "Recent expense activity will be built next.",
+            text = "Add expenses to check out the activity",
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

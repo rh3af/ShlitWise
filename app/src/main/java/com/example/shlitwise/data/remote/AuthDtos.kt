@@ -19,6 +19,10 @@ data class UpdateAccountRequestDto(
     val password: String?
 )
 
+data class ParticipantLookupRequestDto(
+    val value: String
+)
+
 data class UserDto(
     val id: Long,
     val fullName: String,

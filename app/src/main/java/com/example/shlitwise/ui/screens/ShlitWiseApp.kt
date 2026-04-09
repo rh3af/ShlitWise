@@ -26,7 +26,11 @@ fun ShlitWiseApp() {
     }
 
     val existingUser = remember { repository.getCurrentUser() }
-    var currentUser by rememberSaveable { mutableStateOf(existingUser) }
+
+    // User is NOT safe to store with rememberSaveable unless you make it Parcelable or provide a Saver
+    var currentUser by remember { mutableStateOf<User?>(existingUser) }
+
+    // Enum is fine with rememberSaveable
     var currentScreen by rememberSaveable {
         mutableStateOf(if (existingUser != null) AppScreen.HOME else AppScreen.MAIN)
     }
@@ -47,7 +51,7 @@ fun ShlitWiseApp() {
         AppScreen.SIGN_IN -> SignInScreen(
             repository = repository,
             onBackClick = { currentScreen = AppScreen.MAIN },
-            onLoginSuccess = { user: User ->
+            onLoginSuccess = { user ->
                 currentUser = user
                 currentScreen = AppScreen.HOME
             }
@@ -56,7 +60,7 @@ fun ShlitWiseApp() {
         AppScreen.SIGN_UP -> SignUpScreen(
             repository = repository,
             onBackClick = { currentScreen = AppScreen.MAIN },
-            onSignUpSuccess = { user: User ->
+            onSignUpSuccess = { user ->
                 currentUser = user
                 currentScreen = AppScreen.HOME
             }

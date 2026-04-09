@@ -42,6 +42,14 @@ object AuthApiService {
         return putForUser("/account/$userId", body)
     }
 
+    fun lookupParticipant(request: ParticipantLookupRequestDto): Result<UserDto> {
+        val body = JSONObject().apply {
+            put("value", request.value)
+        }
+
+        return postForUser("/users/lookup", body)
+    }
+
     private fun postForAuth(path: String, jsonBody: JSONObject): Result<AuthResponseDto> {
         return try {
             val url = URL("$BASE_URL$path")
@@ -67,6 +75,39 @@ object AuthApiService {
 
             if (responseCode in 200..299) {
                 Result.success(parseAuthResponse(responseText))
+            } else {
+                Result.failure(Exception(parseErrorMessage(responseText)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to connect to server. Make sure backend is running and phone is on same Wi-Fi."))
+        }
+    }
+
+    private fun postForUser(path: String, jsonBody: JSONObject): Result<UserDto> {
+        return try {
+            val url = URL("$BASE_URL$path")
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(jsonBody.toString())
+                writer.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val responseText = if (responseCode in 200..299) {
+                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+            } else {
+                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            }
+
+            if (responseCode in 200..299) {
+                Result.success(parseUserResponse(responseText))
             } else {
                 Result.failure(Exception(parseErrorMessage(responseText)))
             }
@@ -125,6 +166,7 @@ object AuthApiService {
 
     private fun parseUserResponse(response: String): UserDto {
         val userJson = JSONObject(response)
+
         return UserDto(
             id = userJson.getLong("id"),
             fullName = userJson.getString("fullName"),
