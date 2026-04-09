@@ -1,5 +1,6 @@
 package com.example.shlitwise.ui.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -38,8 +39,67 @@ fun SignUpScreen(
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val trimmedFullName = fullName.trim()
+    val trimmedEmail = email.trim()
+    val trimmedPhoneNumber = phoneNumber.trim()
+
+    val isEmailValid = trimmedEmail.isNotEmpty() &&
+            Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()
+
+    val hasMinLength = password.length >= 8
+    val hasUppercase = password.any { it.isUpperCase() }
+    val hasLowercase = password.any { it.isLowerCase() }
+    val hasDigit = password.any { it.isDigit() }
+
+    val isPasswordStrong = hasMinLength && hasUppercase && hasLowercase && hasDigit
+    val doPasswordsMatch = confirmPassword.isNotBlank() && password == confirmPassword
+    val isPhoneValid = trimmedPhoneNumber.length >= 10 && trimmedPhoneNumber.all { it.isDigit() }
+    val isFullNameValid = trimmedFullName.isNotEmpty()
+
+    val fullNameValidationMessage = when {
+        fullName.isBlank() -> null
+        !isFullNameValid -> "Full name is required"
+        else -> null
+    }
+
+    val emailValidationMessage = when {
+        email.isBlank() -> null
+        !isEmailValid -> "Enter a valid email address"
+        else -> null
+    }
+
+    val passwordValidationMessage = when {
+        password.isBlank() -> null
+        !hasMinLength -> "Password must be at least 8 characters"
+        !hasUppercase -> "Password must contain at least 1 uppercase letter"
+        !hasLowercase -> "Password must contain at least 1 lowercase letter"
+        !hasDigit -> "Password must contain at least 1 digit"
+        else -> null
+    }
+
+    val confirmPasswordValidationMessage = when {
+        confirmPassword.isBlank() -> null
+        !doPasswordsMatch -> "Passwords do not match"
+        else -> null
+    }
+
+    val phoneValidationMessage = when {
+        phoneNumber.isBlank() -> null
+        !isPhoneValid -> "Enter a valid phone number with at least 10 digits"
+        else -> null
+    }
+
+    val isSignUpEnabled = isFullNameValid &&
+            isEmailValid &&
+            isPasswordStrong &&
+            doPasswordsMatch &&
+            isPhoneValid &&
+            !isLoading
 
     Column(
         modifier = Modifier
@@ -64,8 +124,18 @@ fun SignUpScreen(
             },
             label = { Text("Full Name") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            isError = fullNameValidationMessage != null
         )
+
+        if (fullNameValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = fullNameValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -78,8 +148,18 @@ fun SignUpScreen(
             label = { Text("Email address") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
+            singleLine = true,
+            isError = emailValidationMessage != null
         )
+
+        if (emailValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = emailValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -92,8 +172,42 @@ fun SignUpScreen(
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
+            singleLine = true,
+            isError = passwordValidationMessage != null
         )
+
+        if (passwordValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = passwordValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = {
+                confirmPassword = it
+                errorMessage = null
+            },
+            label = { Text("Confirm Password") },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
+            isError = confirmPasswordValidationMessage != null
+        )
+
+        if (confirmPasswordValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = confirmPasswordValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -106,8 +220,18 @@ fun SignUpScreen(
             label = { Text("Phone number") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            singleLine = true
+            singleLine = true,
+            isError = phoneValidationMessage != null
         )
+
+        if (phoneValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = phoneValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         if (!errorMessage.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(12.dp))
@@ -122,21 +246,40 @@ fun SignUpScreen(
 
         Button(
             onClick = {
-                when (val result = repository.signUp(fullName, email, password, phoneNumber)) {
-                    is AuthResult.Success -> onSignUpSuccess(result.user)
-                    is AuthResult.Error -> errorMessage = result.message
+                isLoading = true
+                errorMessage = null
+
+                when (
+                    val result = repository.signUp(
+                        fullName = trimmedFullName,
+                        email = trimmedEmail,
+                        password = password,
+                        phoneNumber = trimmedPhoneNumber
+                    )
+                ) {
+                    is AuthResult.Success -> {
+                        isLoading = false
+                        onSignUpSuccess(result.user)
+                    }
+
+                    is AuthResult.Error -> {
+                        isLoading = false
+                        errorMessage = result.message
+                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isSignUpEnabled
         ) {
-            Text("Done")
+            Text(if (isLoading) "Creating account..." else "Done")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = onBackClick,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
             Text("Back")
         }

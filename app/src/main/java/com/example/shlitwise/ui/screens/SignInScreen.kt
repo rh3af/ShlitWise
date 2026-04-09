@@ -1,5 +1,6 @@
 package com.example.shlitwise.ui.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,26 @@ fun SignInScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val trimmedEmail = email.trim()
+    val isEmailValid = trimmedEmail.isNotEmpty() &&
+            Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()
+    val isPasswordValid = password.isNotBlank()
+
+    val emailValidationMessage = when {
+        email.isBlank() -> null
+        !isEmailValid -> "Enter a valid email address"
+        else -> null
+    }
+
+    val passwordValidationMessage = when {
+        password.isBlank() -> null
+        !isPasswordValid -> "Password is required"
+        else -> null
+    }
+
+    val isLoginEnabled = isEmailValid && isPasswordValid && !isLoading
 
     Column(
         modifier = Modifier
@@ -63,8 +84,18 @@ fun SignInScreen(
             label = { Text("Email address") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
+            singleLine = true,
+            isError = emailValidationMessage != null
         )
+
+        if (emailValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = emailValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -77,8 +108,18 @@ fun SignInScreen(
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
+            singleLine = true,
+            isError = passwordValidationMessage != null
         )
+
+        if (passwordValidationMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = passwordValidationMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         if (!errorMessage.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(12.dp))
@@ -93,14 +134,24 @@ fun SignInScreen(
 
         Button(
             onClick = {
-                when (val result = repository.signIn(email, password)) {
-                    is AuthResult.Success -> onLoginSuccess(result.user)
-                    is AuthResult.Error -> errorMessage = result.message
+                isLoading = true
+                errorMessage = null
+
+                when (val result = repository.signIn(trimmedEmail, password)) {
+                    is AuthResult.Success -> {
+                        isLoading = false
+                        onLoginSuccess(result.user)
+                    }
+                    is AuthResult.Error -> {
+                        isLoading = false
+                        errorMessage = result.message
+                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isLoginEnabled
         ) {
-            Text("Login")
+            Text(if (isLoading) "Logging in..." else "Login")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -109,7 +160,8 @@ fun SignInScreen(
             onClick = {
                 errorMessage = "Forgot Password API will be connected later"
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
             Text("Forgot Password")
         }
@@ -118,7 +170,8 @@ fun SignInScreen(
 
         OutlinedButton(
             onClick = onBackClick,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
             Text("Back")
         }

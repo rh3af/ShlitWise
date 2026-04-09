@@ -29,12 +29,14 @@ class AuthRepository(
             return AuthResult.Error("Enter a valid email address")
         }
 
-        if (password.length < 6) {
-            return AuthResult.Error("Password must be at least 6 characters")
+        if (!isStrongPassword(password)) {
+            return AuthResult.Error(
+                "Password must be at least 8 characters and include uppercase, lowercase, and a digit"
+            )
         }
 
-        if (normalizedPhoneNumber.length < 10) {
-            return AuthResult.Error("Enter a valid phone number")
+        if (!isValidPhoneNumber(normalizedPhoneNumber)) {
+            return AuthResult.Error("Enter a valid phone number with at least 10 digits")
         }
 
         if (dbHelper.getUserByEmail(normalizedEmail) != null) {
@@ -103,6 +105,19 @@ class AuthRepository(
 
     fun signOut() {
         sessionManager.clearSession()
+    }
+
+    private fun isStrongPassword(password: String): Boolean {
+        val hasMinLength = password.length >= 8
+        val hasUppercase = password.any { it.isUpperCase() }
+        val hasLowercase = password.any { it.isLowerCase() }
+        val hasDigit = password.any { it.isDigit() }
+
+        return hasMinLength && hasUppercase && hasLowercase && hasDigit
+    }
+
+    private fun isValidPhoneNumber(phoneNumber: String): Boolean {
+        return phoneNumber.length >= 10 && phoneNumber.all { it.isDigit() }
     }
 
     private fun generateToken(): String = UUID.randomUUID().toString()
