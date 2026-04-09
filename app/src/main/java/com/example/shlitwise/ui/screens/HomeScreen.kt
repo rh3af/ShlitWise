@@ -89,17 +89,26 @@ fun HomeScreen(
                 AddExpenseScreen(
                     modifier = contentModifier,
                     repository = repository,
+                    currentUser = user,
                     onBackClick = { showAddExpense = false },
                     onSaveClick = { showAddExpense = false }
                 )
             }
 
             selectedTab == HomeTab.FRIENDS -> {
-                FriendsScreen(modifier = contentModifier)
+                FriendsScreen(
+                    modifier = contentModifier,
+                    repository = repository,
+                    currentUser = user
+                )
             }
 
             selectedTab == HomeTab.ACTIVITY -> {
-                ActivityScreen(modifier = contentModifier)
+                ActivityScreen(
+                    modifier = contentModifier,
+                    repository = repository,
+                    currentUser = user
+                )
             }
 
             selectedTab == HomeTab.ACCOUNT && showEditAccount -> {

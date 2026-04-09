@@ -44,3 +44,25 @@ fun SingleParticipantSplitOption.toDisplayText(otherUserName: String): String {
             "$otherUserName is owed the full amount"
     }
 }
+
+fun buildPayerOptions(participants: List<User>): List<PayerOption> {
+    val options = mutableListOf<PayerOption>()
+
+    options.add(
+        PayerOption(
+            userId = null,
+            displayName = "You"
+        )
+    )
+
+    participants.forEach { participant ->
+        options.add(
+            PayerOption(
+                userId = participant.id,
+                displayName = participant.fullName.ifBlank { participant.email }
+            )
+        )
+    }
+
+    return options
+}

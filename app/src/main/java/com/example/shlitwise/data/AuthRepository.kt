@@ -1,7 +1,10 @@
 package com.example.shlitwise.data
 
 import android.util.Patterns
+import com.example.shlitwise.data.remote.ActivityExpenseResponseDto
 import com.example.shlitwise.data.remote.AuthRemoteDataSource
+import com.example.shlitwise.data.remote.ExpenseResponseDto
+import com.example.shlitwise.data.remote.FriendBalanceResponseDto
 import com.example.shlitwise.model.AuthResult
 import com.example.shlitwise.model.User
 
@@ -132,6 +135,71 @@ class AuthRepository(
         }
 
         return remoteDataSource.lookupParticipant(normalizedValue)
+    }
+
+    fun saveExpense(
+        createdByUserId: Long,
+        description: String,
+        amount: Double,
+        participants: List<User>,
+        paidByUserId: Long?,
+        paidByDisplayName: String,
+        splitType: String,
+        singleParticipantSplitOption: String?
+    ): Result<ExpenseResponseDto> {
+        val normalizedDescription = description.trim()
+        val normalizedPaidByDisplayName = paidByDisplayName.trim()
+
+        if (createdByUserId <= 0) {
+            return Result.failure(Exception("Invalid expense creator"))
+        }
+
+        if (normalizedDescription.isBlank()) {
+            return Result.failure(Exception("Description is required"))
+        }
+
+        if (amount <= 0.0) {
+            return Result.failure(Exception("Amount must be greater than 0"))
+        }
+
+        if (participants.isEmpty()) {
+            return Result.failure(Exception("Add at least one participant"))
+        }
+
+        if (normalizedPaidByDisplayName.isBlank()) {
+            return Result.failure(Exception("Paid by selection is required"))
+        }
+
+        if (splitType.isBlank()) {
+            return Result.failure(Exception("Split type is required"))
+        }
+
+        return remoteDataSource.saveExpense(
+            createdByUserId = createdByUserId,
+            description = normalizedDescription,
+            amount = amount,
+            participants = participants,
+            paidByUserId = paidByUserId,
+            paidByDisplayName = normalizedPaidByDisplayName,
+            splitType = splitType,
+            singleParticipantSplitOption = singleParticipantSplitOption
+        )
+    }
+
+    fun getActivityExpenses(userId: Long): Result<List<ActivityExpenseResponseDto>> {
+        if (userId <= 0) {
+            return Result.failure(Exception("Invalid user id"))
+        }
+
+        return remoteDataSource.getActivityExpenses(userId)
+    }
+
+    fun getFriendBalances(userId: Long): Result<List<FriendBalanceResponseDto>> {
+        if (userId <= 0) {
+            return Result.failure(Exception("Invalid user id"))
+        }
+
+        return remoteDataSource.getFriendBalances(userId)
     }
 
     fun getCurrentUser(): User? = sessionManager.getCurrentUser()

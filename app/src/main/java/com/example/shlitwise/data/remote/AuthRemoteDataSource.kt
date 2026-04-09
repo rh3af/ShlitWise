@@ -122,4 +122,68 @@ class AuthRemoteDataSource {
             }
         )
     }
+
+    fun saveExpense(
+        createdByUserId: Long,
+        description: String,
+        amount: Double,
+        participants: List<User>,
+        paidByUserId: Long?,
+        paidByDisplayName: String,
+        splitType: String,
+        singleParticipantSplitOption: String?
+    ): Result<ExpenseResponseDto> {
+        val result = AuthApiService.saveExpense(
+            SaveExpenseRequestDto(
+                createdByUserId = createdByUserId,
+                description = description,
+                amount = amount,
+                participants = participants.map {
+                    ExpenseParticipantRequestDto(
+                        userId = it.id,
+                        displayName = it.fullName.ifBlank { it.email }
+                    )
+                },
+                paidByUserId = paidByUserId,
+                paidByDisplayName = paidByDisplayName,
+                splitType = splitType,
+                singleParticipantSplitOption = singleParticipantSplitOption
+            )
+        )
+
+        return result.fold(
+            onSuccess = { response ->
+                Result.success(response)
+            },
+            onFailure = { error ->
+                Result.failure(Exception(error.message ?: "Unable to save expense"))
+            }
+        )
+    }
+
+    fun getActivityExpenses(userId: Long): Result<List<ActivityExpenseResponseDto>> {
+        val result = AuthApiService.getActivityExpenses(userId)
+
+        return result.fold(
+            onSuccess = { response ->
+                Result.success(response)
+            },
+            onFailure = { error ->
+                Result.failure(Exception(error.message ?: "Unable to load activity"))
+            }
+        )
+    }
+
+    fun getFriendBalances(userId: Long): Result<List<FriendBalanceResponseDto>> {
+        val result = AuthApiService.getFriendBalances(userId)
+
+        return result.fold(
+            onSuccess = { response ->
+                Result.success(response)
+            },
+            onFailure = { error ->
+                Result.failure(Exception(error.message ?: "Unable to load friend balances"))
+            }
+        )
+    }
 }
