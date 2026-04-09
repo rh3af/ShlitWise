@@ -1,61 +1,100 @@
 package com.example.shlitwise.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.shlitwise.data.AuthRepository
 import com.example.shlitwise.model.User
+import com.example.shlitwise.navigation.HomeTab
 
 @Composable
 fun HomeScreen(
+    repository: AuthRepository,
     user: User?,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onUserUpdated: (User) -> Unit
 ) {
-    Column(
-        modifier = Modifier
+    var selectedTab by rememberSaveable { mutableStateOf(HomeTab.FRIENDS) }
+    var showEditAccount by rememberSaveable { mutableStateOf(false) }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == HomeTab.FRIENDS,
+                    onClick = {
+                        selectedTab = HomeTab.FRIENDS
+                        showEditAccount = false
+                    },
+                    icon = { Text("👥") },
+                    label = { Text("Friends") }
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == HomeTab.ACTIVITY,
+                    onClick = {
+                        selectedTab = HomeTab.ACTIVITY
+                        showEditAccount = false
+                    },
+                    icon = { Text("📋") },
+                    label = { Text("Activity") }
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == HomeTab.ACCOUNT,
+                    onClick = {
+                        selectedTab = HomeTab.ACCOUNT
+                        showEditAccount = false
+                    },
+                    icon = { Text("👤") },
+                    label = { Text("Account") }
+                )
+            }
+        }
+    ) { innerPadding ->
+        val contentModifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Welcome to ShlitWise",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
+            .padding(innerPadding)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        when {
+            selectedTab == HomeTab.FRIENDS -> {
+                FriendsScreen(modifier = contentModifier)
+            }
 
-        Text(
-            text = "Logged in as ${user?.fullName ?: "User"}",
-            fontSize = 18.sp
-        )
+            selectedTab == HomeTab.ACTIVITY -> {
+                ActivityScreen(modifier = contentModifier)
+            }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            selectedTab == HomeTab.ACCOUNT && showEditAccount -> {
+                EditAccountScreen(
+                    modifier = contentModifier,
+                    repository = repository,
+                    currentUser = user,
+                    onBackClick = { showEditAccount = false },
+                    onSaveClick = { updatedUser ->
+                        onUserUpdated(updatedUser)
+                        showEditAccount = false
+                    }
+                )
+            }
 
-        Text(
-            text = user?.email ?: "",
-            fontSize = 14.sp
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedButton(
-            onClick = onLogoutClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Logout")
+            selectedTab == HomeTab.ACCOUNT -> {
+                AccountScreen(
+                    modifier = contentModifier,
+                    user = user,
+                    onEditAccountClick = { showEditAccount = true },
+                    onLogoutClick = onLogoutClick
+                )
+            }
         }
     }
 }

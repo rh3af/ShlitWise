@@ -28,6 +28,18 @@ class SessionManager(context: Context) {
         )
     }
 
+    fun updateUser(user: User) {
+        val existingToken = prefs.getString("auth_token", "") ?: ""
+
+        prefs.edit()
+            .putLong("user_id", user.id)
+            .putString("full_name", user.fullName)
+            .putString("email", user.email)
+            .putString("phone_number", user.phoneNumber)
+            .putString("auth_token", existingToken)
+            .apply()
+    }
+
     fun clearSession() {
         prefs.edit().clear().apply()
     }

@@ -19,7 +19,7 @@ object AuthApiService {
             put("phoneNumber", request.phoneNumber)
         }
 
-        return post("/signup", body)
+        return postForAuth("/signup", body)
     }
 
     fun login(request: LoginRequestDto): Result<AuthResponseDto> {
@@ -28,10 +28,21 @@ object AuthApiService {
             put("password", request.password)
         }
 
-        return post("/login", body)
+        return postForAuth("/login", body)
     }
 
-    private fun post(path: String, jsonBody: JSONObject): Result<AuthResponseDto> {
+    fun updateAccount(userId: Long, request: UpdateAccountRequestDto): Result<UserDto> {
+        val body = JSONObject().apply {
+            put("fullName", request.fullName)
+            put("email", request.email)
+            put("phoneNumber", request.phoneNumber)
+            put("password", request.password ?: "")
+        }
+
+        return putForUser("/account/$userId", body)
+    }
+
+    private fun postForAuth(path: String, jsonBody: JSONObject): Result<AuthResponseDto> {
         return try {
             val url = URL("$BASE_URL$path")
             val connection = url.openConnection() as HttpURLConnection
@@ -60,11 +71,40 @@ object AuthApiService {
                 Result.failure(Exception(parseErrorMessage(responseText)))
             }
         } catch (e: Exception) {
-            Result.failure(
-                Exception(
-                    "Unable to connect to server. Make sure backend is running and phone is on same Wi-Fi."
-                )
-            )
+            Result.failure(Exception("Unable to connect to server. Make sure backend is running and phone is on same Wi-Fi."))
+        }
+    }
+
+    private fun putForUser(path: String, jsonBody: JSONObject): Result<UserDto> {
+        return try {
+            val url = URL("$BASE_URL$path")
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "PUT"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(jsonBody.toString())
+                writer.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val responseText = if (responseCode in 200..299) {
+                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+            } else {
+                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            }
+
+            if (responseCode in 200..299) {
+                Result.success(parseUserResponse(responseText))
+            } else {
+                Result.failure(Exception(parseErrorMessage(responseText)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to connect to server. Make sure backend is running and phone is on same Wi-Fi."))
         }
     }
 
@@ -80,6 +120,16 @@ object AuthApiService {
                 email = userJson.getString("email"),
                 phoneNumber = userJson.getString("phoneNumber")
             )
+        )
+    }
+
+    private fun parseUserResponse(response: String): UserDto {
+        val userJson = JSONObject(response)
+        return UserDto(
+            id = userJson.getLong("id"),
+            fullName = userJson.getString("fullName"),
+            email = userJson.getString("email"),
+            phoneNumber = userJson.getString("phoneNumber")
         )
     }
 

@@ -78,6 +78,52 @@ class AuthRepository(
         return result
     }
 
+    fun updateCurrentUser(
+        user: User,
+        newPassword: String?
+    ): Result<User> {
+        val normalizedFullName = user.fullName.trim()
+        val normalizedEmail = user.email.trim().lowercase()
+        val normalizedPhoneNumber = user.phoneNumber.trim()
+        val normalizedPassword = newPassword?.trim().orEmpty()
+
+        if (normalizedFullName.isEmpty()) {
+            return Result.failure(Exception("Full name is required"))
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(normalizedEmail).matches()) {
+            return Result.failure(Exception("Enter a valid email address"))
+        }
+
+        if (!isValidPhoneNumber(normalizedPhoneNumber)) {
+            return Result.failure(Exception("Enter a valid phone number with at least 10 digits"))
+        }
+
+        if (normalizedPassword.isNotBlank() && !isStrongPassword(normalizedPassword)) {
+            return Result.failure(
+                Exception("Password must be at least 8 characters and include uppercase, lowercase, and a digit")
+            )
+        }
+
+        val result = remoteDataSource.updateAccount(
+            userId = user.id,
+            fullName = normalizedFullName,
+            email = normalizedEmail,
+            phoneNumber = normalizedPhoneNumber,
+            password = normalizedPassword.ifBlank { null }
+        )
+
+        return result.fold(
+            onSuccess = { updatedUser ->
+                sessionManager.updateUser(updatedUser)
+                Result.success(updatedUser)
+            },
+            onFailure = { error ->
+                Result.failure(error)
+            }
+        )
+    }
+
     fun getCurrentUser(): User? = sessionManager.getCurrentUser()
 
     fun signOut() {

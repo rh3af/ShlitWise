@@ -63,11 +63,15 @@ fun ShlitWiseApp() {
         )
 
         AppScreen.HOME -> HomeScreen(
+            repository = repository,
             user = currentUser,
             onLogoutClick = {
                 repository.signOut()
                 currentUser = null
                 currentScreen = AppScreen.MAIN
+            },
+            onUserUpdated = { updatedUser ->
+                currentUser = updatedUser
             }
         )
     }

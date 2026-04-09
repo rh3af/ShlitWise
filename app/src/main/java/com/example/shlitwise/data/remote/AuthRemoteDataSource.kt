@@ -66,4 +66,38 @@ class AuthRemoteDataSource {
             }
         )
     }
+
+    fun updateAccount(
+        userId: Long,
+        fullName: String,
+        email: String,
+        phoneNumber: String,
+        password: String?
+    ): Result<User> {
+        val result = AuthApiService.updateAccount(
+            userId = userId,
+            request = UpdateAccountRequestDto(
+                fullName = fullName,
+                email = email,
+                phoneNumber = phoneNumber,
+                password = password
+            )
+        )
+
+        return result.fold(
+            onSuccess = { response ->
+                Result.success(
+                    User(
+                        id = response.id,
+                        fullName = response.fullName,
+                        email = response.email,
+                        phoneNumber = response.phoneNumber
+                    )
+                )
+            },
+            onFailure = { error ->
+                Result.failure(Exception(error.message ?: "Unable to update account"))
+            }
+        )
+    }
 }
