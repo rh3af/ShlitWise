@@ -1,13 +1,12 @@
 package com.example.shlitwise.data
 
 import android.util.Patterns
+import com.example.shlitwise.data.remote.AuthRemoteDataSource
 import com.example.shlitwise.model.AuthResult
 import com.example.shlitwise.model.User
-import java.security.MessageDigest
-import java.util.UUID
 
 class AuthRepository(
-    private val dbHelper: ShlitWiseDbHelper,
+    private val remoteDataSource: AuthRemoteDataSource,
     private val sessionManager: SessionManager
 ) : AuthApi {
 
@@ -39,32 +38,18 @@ class AuthRepository(
             return AuthResult.Error("Enter a valid phone number with at least 10 digits")
         }
 
-        if (dbHelper.getUserByEmail(normalizedEmail) != null) {
-            return AuthResult.Error("An account already exists for this email")
-        }
-
-        val userId = dbHelper.insertUser(
+        val result = remoteDataSource.signUp(
             fullName = normalizedFullName,
             email = normalizedEmail,
-            passwordHash = hashPassword(password),
+            password = password,
             phoneNumber = normalizedPhoneNumber
         )
 
-        if (userId == -1L) {
-            return AuthResult.Error("Unable to create account right now")
+        if (result is AuthResult.Success) {
+            sessionManager.saveSession(result.user, result.token)
         }
 
-        val user = User(
-            id = userId,
-            fullName = normalizedFullName,
-            email = normalizedEmail,
-            phoneNumber = normalizedPhoneNumber
-        )
-
-        val token = generateToken()
-        sessionManager.saveSession(user, token)
-
-        return AuthResult.Success(user, token)
+        return result
     }
 
     override fun signIn(
@@ -81,24 +66,16 @@ class AuthRepository(
             return AuthResult.Error("Password is required")
         }
 
-        val dbUser = dbHelper.getUserByEmail(normalizedEmail)
-            ?: return AuthResult.Error("No account found for this email")
-
-        if (dbUser.passwordHash != hashPassword(password)) {
-            return AuthResult.Error("Invalid email or password")
-        }
-
-        val user = User(
-            id = dbUser.id,
-            fullName = dbUser.fullName,
-            email = dbUser.email,
-            phoneNumber = dbUser.phoneNumber
+        val result = remoteDataSource.signIn(
+            email = normalizedEmail,
+            password = password
         )
 
-        val token = generateToken()
-        sessionManager.saveSession(user, token)
+        if (result is AuthResult.Success) {
+            sessionManager.saveSession(result.user, result.token)
+        }
 
-        return AuthResult.Success(user, token)
+        return result
     }
 
     fun getCurrentUser(): User? = sessionManager.getCurrentUser()
@@ -118,13 +95,5 @@ class AuthRepository(
 
     private fun isValidPhoneNumber(phoneNumber: String): Boolean {
         return phoneNumber.length >= 10 && phoneNumber.all { it.isDigit() }
-    }
-
-    private fun generateToken(): String = UUID.randomUUID().toString()
-
-    private fun hashPassword(password: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashedBytes = digest.digest(password.toByteArray())
-        return hashedBytes.joinToString("") { "%02x".format(it) }
     }
 }

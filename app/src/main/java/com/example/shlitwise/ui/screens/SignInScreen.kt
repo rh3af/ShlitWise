@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import com.example.shlitwise.data.AuthRepository
 import com.example.shlitwise.model.AuthResult
 import com.example.shlitwise.model.User
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SignInScreen(
@@ -40,6 +44,7 @@ fun SignInScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val trimmedEmail = email.trim()
     val isEmailValid = trimmedEmail.isNotEmpty() &&
@@ -137,14 +142,16 @@ fun SignInScreen(
                 isLoading = true
                 errorMessage = null
 
-                when (val result = repository.signIn(trimmedEmail, password)) {
-                    is AuthResult.Success -> {
-                        isLoading = false
-                        onLoginSuccess(result.user)
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        repository.signIn(trimmedEmail, password)
                     }
-                    is AuthResult.Error -> {
-                        isLoading = false
-                        errorMessage = result.message
+
+                    isLoading = false
+
+                    when (result) {
+                        is AuthResult.Success -> onLoginSuccess(result.user)
+                        is AuthResult.Error -> errorMessage = result.message
                     }
                 }
             },

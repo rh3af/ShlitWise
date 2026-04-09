@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import com.example.shlitwise.data.AuthRepository
 import com.example.shlitwise.model.AuthResult
 import com.example.shlitwise.model.User
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SignUpScreen(
@@ -43,6 +47,7 @@ fun SignUpScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val trimmedFullName = fullName.trim()
     val trimmedEmail = email.trim()
@@ -249,22 +254,21 @@ fun SignUpScreen(
                 isLoading = true
                 errorMessage = null
 
-                when (
-                    val result = repository.signUp(
-                        fullName = trimmedFullName,
-                        email = trimmedEmail,
-                        password = password,
-                        phoneNumber = trimmedPhoneNumber
-                    )
-                ) {
-                    is AuthResult.Success -> {
-                        isLoading = false
-                        onSignUpSuccess(result.user)
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        repository.signUp(
+                            fullName = trimmedFullName,
+                            email = trimmedEmail,
+                            password = password,
+                            phoneNumber = trimmedPhoneNumber
+                        )
                     }
 
-                    is AuthResult.Error -> {
-                        isLoading = false
-                        errorMessage = result.message
+                    isLoading = false
+
+                    when (result) {
+                        is AuthResult.Success -> onSignUpSuccess(result.user)
+                        is AuthResult.Error -> errorMessage = result.message
                     }
                 }
             },

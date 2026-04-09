@@ -10,7 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.shlitwise.data.AuthRepository
 import com.example.shlitwise.data.SessionManager
-import com.example.shlitwise.data.ShlitWiseDbHelper
+import com.example.shlitwise.data.remote.AuthRemoteDataSource
 import com.example.shlitwise.model.User
 import com.example.shlitwise.navigation.AppScreen
 
@@ -20,7 +20,7 @@ fun ShlitWiseApp() {
 
     val repository = remember {
         AuthRepository(
-            dbHelper = ShlitWiseDbHelper(context.applicationContext),
+            remoteDataSource = AuthRemoteDataSource(),
             sessionManager = SessionManager(context.applicationContext)
         )
     }
